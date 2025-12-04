@@ -78,6 +78,8 @@ The game-over screen:
 | Reset Run | `reset_player` |
 
 ---
+## Controller Support
+- Input mapping allows users to change and configure controls on keyboard or controller
 
 ## Technical Highlights
 
