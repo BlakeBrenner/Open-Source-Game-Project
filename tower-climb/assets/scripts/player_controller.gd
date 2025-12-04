@@ -7,6 +7,7 @@ class_name PlayerController
 var speed_multiplier: float = 30.0
 var jump_multiplier: float = -30.0
 var direction: float = 0.0
+var can_move: bool = true
 
 var gravity: float = ProjectSettings.get_setting("physics/2d/default_gravity")
 
@@ -49,7 +50,8 @@ func _input(event: InputEvent) -> void:
 	# Ignore all player input while the shop is open
 	if _is_shop_open():
 		return
-
+	if not can_move:
+		return
 	# JUMP INPUT (buffered & variable height)
 	if event.is_action_pressed("jump"):
 		jump_buffer_timer = jump_buffer_time
@@ -73,7 +75,10 @@ func _physics_process(delta: float) -> void:
 	if _is_shop_open():
 		velocity = Vector2.ZERO
 		return
-
+	if not can_move:
+		velocity = Vector2.ZERO
+		move_and_slide()
+		return
 	# --- Timers for coyote & jump buffer ---
 	if is_on_floor():
 		coyote_timer = coyote_time

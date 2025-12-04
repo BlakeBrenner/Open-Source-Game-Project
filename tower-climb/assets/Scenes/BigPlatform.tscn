@@ -1,4 +1,6 @@
-[gd_scene load_steps=3 format=3 uid="uid://cpgu8wbjl1hq7"]
+[gd_scene load_steps=4 format=3 uid="uid://cpgu8wbjl1hq7"]
+
+[ext_resource type="Texture2D" uid="uid://dpkkvvfasoc1p" path="res://assets/sprites/Platform.png" id="1_72ujg"]
 
 [sub_resource type="CanvasTexture" id="CanvasTexture_74o70"]
 
@@ -8,9 +10,15 @@ size = Vector2(145, 20)
 [node name="StaticBody2D" type="StaticBody2D"]
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
+visible = false
 position = Vector2(3.8146973e-06, -7.152556e-07)
 scale = Vector2(145.99998, 19.999998)
 texture = SubResource("CanvasTexture_74o70")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("RectangleShape2D_btrkj")
+
+[node name="Sprite2D2" type="Sprite2D" parent="."]
+position = Vector2(0, 1)
+scale = Vector2(0.19042967, 0.13452147)
+texture = ExtResource("1_72ujg")

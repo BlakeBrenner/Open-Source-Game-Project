@@ -1,28 +1,24 @@
 [gd_scene load_steps=5 format=3 uid="uid://cve2v30wlwo6m"]
 
 [ext_resource type="Script" uid="uid://bk2ps3x0ejhb0" path="res://assets/Scenes/shop_platform.gd" id="1_mrdyc"]
-[ext_resource type="Texture2D" uid="uid://bh72oyyd0vd1q" path="res://assets/sprites/shop plat.png" id="2_4xx54"]
+[ext_resource type="Texture2D" uid="uid://dpkkvvfasoc1p" path="res://assets/sprites/Platform.png" id="2_nnd16"]
+[ext_resource type="Texture2D" uid="uid://bm6jlthvkcy8y" path="res://assets/sprites/shopIcon.png" id="3_0xrsa"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_btrkj"]
-size = Vector2(145, 20)
-
-[sub_resource type="CanvasTexture" id="CanvasTexture_74o70"]
-specular_color = Color(0, 1, 1, 1)
+size = Vector2(121, 38)
 
 [node name="StaticBody2D" type="StaticBody2D"]
 script = ExtResource("1_mrdyc")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
-position = Vector2(72.5, 0)
+position = Vector2(0.4999981, 5)
 shape = SubResource("RectangleShape2D_btrkj")
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
-visible = false
-position = Vector2(72.25, -7.152556e-07)
-scale = Vector2(145.5, 19.999998)
-texture = SubResource("CanvasTexture_74o70")
+scale = Vector2(0.15826318, 0.1455078)
+texture = ExtResource("2_nnd16")
 
 [node name="Sprite2D2" type="Sprite2D" parent="."]
-position = Vector2(70, -26)
-scale = Vector2(0.18128924, 0.13311225)
-texture = ExtResource("2_4xx54")
+position = Vector2(-9.536743e-07, -34)
+scale = Vector2(0.14114438, 0.10363574)
+texture = ExtResource("3_0xrsa")

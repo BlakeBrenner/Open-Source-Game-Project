@@ -1,4 +1,4 @@
-[gd_scene load_steps=13 format=3 uid="uid://dx16i2x7x0nbl"]
+[gd_scene load_steps=15 format=3 uid="uid://dx16i2x7x0nbl"]
 
 [ext_resource type="Script" uid="uid://cdibgfgda3jep" path="res://assets/scripts/Main.gd" id="1_3dxm6"]
 [ext_resource type="PackedScene" uid="uid://bvj0p1d1cymu5" path="res://assets/Scenes/Platform.tscn" id="1_glv2v"]
@@ -9,38 +9,16 @@
 [ext_resource type="PackedScene" uid="uid://dthy5rhm6j2yn" path="res://assets/Scenes/Coin.tscn" id="6_lgr22"]
 [ext_resource type="PackedScene" uid="uid://c1ao1gt284kb3" path="res://assets/Scenes/BonusPlatform.tscn" id="6_trn2v"]
 [ext_resource type="PackedScene" uid="uid://c5ru5xjuldg1j" path="res://assets/Scenes/MovingPlatform.tscn" id="7_03owx"]
+[ext_resource type="PackedScene" uid="uid://bbpp12xcqw8xe" path="res://assets/Scenes/Spiked Platform.tscn" id="8_5vvyt"]
 [ext_resource type="PackedScene" uid="uid://cve2v30wlwo6m" path="res://assets/Scenes/ShopPlatform.tscn" id="9_20pc6"]
 [ext_resource type="Texture2D" uid="uid://b5vnntkk608nt" path="res://assets/sprites/Background.png" id="10_wkp8b"]
+[ext_resource type="Texture2D" uid="uid://dpkkvvfasoc1p" path="res://assets/sprites/Platform.png" id="13_c6i3y"]
 
 [sub_resource type="LabelSettings" id="LabelSettings_fos0i"]
 
 [node name="Main" type="Node2D"]
 script = ExtResource("1_3dxm6")
 double_jump_cost = 25
-
-[node name="Player" parent="." instance=ExtResource("2_uu6xs")]
-position = Vector2(21, -42)
-scale = Vector2(6, 6)
-
-[node name="PlatformSpawner" type="Node2D" parent="."]
-script = ExtResource("3_r0du0")
-small_platform_scene = ExtResource("4_fos0i")
-big_platform_scene = ExtResource("5_3dxm6")
-bonus_platform_scene = ExtResource("6_trn2v")
-bonus_platform_chance = 0.2
-moving_platform_scene = ExtResource("7_03owx")
-moving_platform_chance = 0.25
-coin_scene = ExtResource("6_lgr22")
-coin_chance = 0.5
-shop_platform_scene = ExtResource("9_20pc6")
-max_gap_y = 85.0
-
-[node name="Coins" type="Node2D" parent="."]
-
-[node name="Platforms" type="Node2D" parent="."]
-
-[node name="Platform" parent="Platforms" instance=ExtResource("1_glv2v")]
-position = Vector2(12, -24)
 
 [node name="UI" type="CanvasLayer" parent="."]
 
@@ -148,3 +126,35 @@ texture_repeat = 2
 texture = ExtResource("10_wkp8b")
 region_enabled = true
 region_rect = Rect2(0, 0, 2000, 6000)
+
+[node name="Player" parent="." instance=ExtResource("2_uu6xs")]
+position = Vector2(21, -42)
+scale = Vector2(4, 4)
+
+[node name="PlatformSpawner" type="Node2D" parent="."]
+script = ExtResource("3_r0du0")
+small_platform_scene = ExtResource("4_fos0i")
+big_platform_scene = ExtResource("5_3dxm6")
+bonus_platform_scene = ExtResource("6_trn2v")
+bonus_platform_chance = 0.2
+moving_platform_scene = ExtResource("7_03owx")
+moving_platform_chance = 0.25
+spiked_platform_scene = ExtResource("8_5vvyt")
+spiked_platform_chance = 0.05
+shop_platform_scene = ExtResource("9_20pc6")
+coin_scene = ExtResource("6_lgr22")
+coin_chance = 0.5
+max_gap_y = 85.0
+
+[node name="Coins" type="Node2D" parent="."]
+
+[node name="Platforms" type="Node2D" parent="."]
+
+[node name="Platform" parent="Platforms" instance=ExtResource("1_glv2v")]
+visible = false
+position = Vector2(12, -24)
+
+[node name="Sprite2D2" type="Sprite2D" parent="Platforms"]
+position = Vector2(51, -17)
+scale = Vector2(0.10839844, 0.10839844)
+texture = ExtResource("13_c6i3y")
