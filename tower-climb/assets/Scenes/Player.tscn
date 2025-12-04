@@ -1,0 +1,54 @@
+[gd_scene load_steps=5 format=3 uid="uid://bqkhbskerc8p1"]
+
+[ext_resource type="Script" uid="uid://bp0fxitbn7xv2" path="res://assets/scripts/player_controller.gd" id="1_6dsi4"]
+[ext_resource type="Texture2D" uid="uid://dkatqk82q4lu" path="res://assets/sprites/WizardFrog.png" id="2_2pn7s"]
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_6dsi4"]
+animations = [{
+"frames": [],
+"loop": true,
+"name": &"Run",
+"speed": 5.0
+}, {
+"frames": [],
+"loop": true,
+"name": &"default",
+"speed": 5.0
+}, {
+"frames": [],
+"loop": true,
+"name": &"idle",
+"speed": 5.0
+}, {
+"frames": [],
+"loop": true,
+"name": &"jump",
+"speed": 5.0
+}]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_fdrta"]
+size = Vector2(6, 6)
+
+[node name="Player" type="CharacterBody2D" groups=["\"player\""]]
+position = Vector2(0, -38)
+scale = Vector2(3, 3)
+script = ExtResource("1_6dsi4")
+
+[node name="Camera2D" type="Camera2D" parent="."]
+scale = Vector2(6, 6)
+zoom = Vector2(1.5, 1.5)
+limit_top = -9999999
+limit_bottom = 0
+position_smoothing_enabled = true
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
+sprite_frames = SubResource("SpriteFrames_6dsi4")
+animation = &"jump"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("RectangleShape2D_fdrta")
+debug_color = Color(0, 1, 1, 0.41960785)
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+scale = Vector2(0.022157192, 0.022157192)
+texture = ExtResource("2_2pn7s")

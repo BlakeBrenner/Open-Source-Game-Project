@@ -1,0 +1,30 @@
+[gd_scene load_steps=3 format=3 uid="uid://bbpp12xcqw8xe"]
+
+[ext_resource type="Texture2D" uid="uid://c7gg0jiwj6ixb" path="res://assets/sprites/Spiked_Platform.png" id="1_xkb5b"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_btrkj"]
+size = Vector2(92, 38)
+
+[node name="StaticBody2D" type="StaticBody2D"]
+
+[node name="SpikedPlatform" type="Sprite2D" parent="."]
+position = Vector2(74, 0.99999976)
+scale = Vector2(0.18798828, 0.18798828)
+texture = ExtResource("1_xkb5b")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(74, 6)
+shape = SubResource("RectangleShape2D_btrkj")
+
+[node name="Hazard Area" type="Area2D" parent="."]
+position = Vector2(74, 6)
+
+[node name="left_hitbox" type="CollisionPolygon2D" parent="Hazard Area"]
+position = Vector2(-55, 106.47916)
+scale = Vector2(1, 8.229167)
+polygon = PackedVector2Array(-8, -8.807594, -3, -8.807594, 9, -10.630379, 9, -15.2481, -3, -17.070885, -8, -17.070885, -23, -15.4911375, -23, -10.873417)
+
+[node name="right_hitbox" type="CollisionPolygon2D" parent="Hazard Area"]
+position = Vector2(69, 108)
+scale = Vector2(1, 8.229167)
+polygon = PackedVector2Array(-11, -9.113924, -6, -9.113924, 9, -11.179747, 9, -15.797468, -6, -17.255695, -11, -17.255695, -23, -15.4911375, -23, -10.873417)

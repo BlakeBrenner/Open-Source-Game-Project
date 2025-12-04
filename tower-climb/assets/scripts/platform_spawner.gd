@@ -1,0 +1,346 @@
+extends Node2D
+
+# --- PLATFORM SCENES ---
+@export var small_platform_scene: PackedScene
+@export var big_platform_scene: PackedScene
+@export_range(0.0, 1.0) var big_platform_chance: float = 0.3
+
+@export var bonus_platform_scene: PackedScene
+@export_range(0.0, 1.0) var bonus_platform_chance: float = 0.1   # 10% bonus
+
+@export var moving_platform_scene: PackedScene
+@export_range(0.0, 1.0) var moving_platform_chance: float = 0.15 # base 15% moving
+
+@export var coin_scene: PackedScene
+@export var coin_chance: float = 0.4   # normal platforms
+
+# --- SHOP PLATFORM ---
+@export var shop_platform_scene: PackedScene        # assign ShopPlatform.tscn here
+@export var shop_height_interval: float = 1000.0    # shop every 1000 height
+
+# how far sideways a shop platform should be from the previous one
+@export var shop_min_horizontal_offset: float = 80.0
+@export var shop_max_horizontal_offset: float = 140.0
+
+# Node paths
+@export var platforms_path: NodePath = "../Platforms"
+@export var coins_path: NodePath = "../Coins"
+@export var player_path: NodePath = "../Player"
+
+# Vertical spacing (BASE values – difficulty adds on top)
+@export var min_gap_y: float = 45.0
+@export var max_gap_y: float = 80.0
+
+# Horizontal spacing (for normal platforms)
+@export var max_horizontal_step: float = 150.0
+@export var min_horizontal_step: float = 40.0
+@export var recent_platforms_to_avoid: int = 3
+
+# How often we tend to flip zig-zag direction (0 = never, 1 = always)
+@export_range(0.0, 1.0) var direction_change_chance: float = 0.6
+
+# Horizontal bounds for the whole tower
+@export var min_x: float = -200.0
+@export var max_x: float = 200.0
+
+# Pre-spawn count
+@export var max_platforms_above: int = 15
+
+# === DIFFICULTY SCALING ===
+# Around this height, difficulty factor will be ~1.0
+@export var difficulty_height_scale: float = 5000.0
+
+# Extra vertical gap added at max difficulty (soft)
+@export var extra_min_gap_y: float = 20.0
+@export var extra_max_gap_y: float = 40.0
+
+var platforms_parent: Node2D
+var coins_parent: Node2D
+var player: Node2D
+var highest_y: float = 0.0
+
+var last_horizontal_dir: float = 0.0
+
+# For shop platform heights
+var base_y: float = 0.0
+var next_shop_height: float = 0.0
+
+
+func _ready() -> void:
+	randomize()
+
+	if has_node(platforms_path):
+		platforms_parent = get_node(platforms_path) as Node2D
+	else:
+		push_error("PlatformSpawner: Node not found at platforms_path: %s" % platforms_path)
+		return
+
+	if has_node(player_path):
+		player = get_node(player_path) as Node2D
+	else:
+		push_error("PlatformSpawner: Node not found at player_path: %s" % player_path)
+		return
+
+	if has_node(coins_path):
+		coins_parent = get_node(coins_path) as Node2D
+	else:
+		push_error("PlatformSpawner: Node not found at coins_path: %s" % coins_path)
+		return
+
+	# Base height for measuring difficulty & shop intervals
+	base_y = player.global_position.y
+	next_shop_height = shop_height_interval
+
+	if platforms_parent.get_child_count() > 0:
+		var first_child := platforms_parent.get_child(0) as Node2D
+		highest_y = first_child.global_position.y
+		for p in platforms_parent.get_children():
+			var p_node := p as Node2D
+			highest_y = min(highest_y, p_node.global_position.y)
+	else:
+		highest_y = player.global_position.y + 50.0
+
+	# random initial zig-zag direction
+	if randf() < 0.5:
+		last_horizontal_dir = -1.0
+	else:
+		last_horizontal_dir = 1.0
+
+	for i in range(max_platforms_above):
+		_spawn_reachable_platform()
+
+
+func _process(delta: float) -> void:
+	# Spawn new platforms as the player gets close to the current top
+	if player.global_position.y - 200.0 < highest_y:
+		_spawn_reachable_platform()
+
+
+func _spawn_reachable_platform() -> void:
+	# --- DIFFICULTY FACTOR based on how high the tower already is ---
+	# 0.0 near the start, approaches 1.0 as (base_y - highest_y) ~ difficulty_height_scale
+	var height_so_far: float = base_y - highest_y
+	var difficulty: float = clamp(height_so_far / difficulty_height_scale, 0.0, 1.0)
+
+	# Scale vertical gaps with difficulty (gradual)
+	var local_min_gap: float = min_gap_y + difficulty * extra_min_gap_y
+	var local_max_gap: float = max_gap_y + difficulty * extra_max_gap_y
+
+	var gap_y: float = randf_range(local_min_gap, local_max_gap)
+	var new_y: float = highest_y - gap_y
+
+	var prev_x: float
+	if platforms_parent.get_child_count() > 0:
+		prev_x = _get_top_platform().global_position.x
+	else:
+		prev_x = player.global_position.x
+
+	# clamp reference x
+	prev_x = clamp(prev_x, min_x, max_x)
+
+	var recent_platforms: Array = _get_recent_top_platforms(recent_platforms_to_avoid)
+
+	# height of THIS platform from start (for shop & type selection)
+	var height_from_start: float = base_y - new_y
+
+	# --- decide if this is a shop platform based on height ---
+	var force_shop_platform: bool = false
+	if shop_platform_scene != null and height_from_start >= next_shop_height:
+		force_shop_platform = true
+		next_shop_height += shop_height_interval
+
+	var new_x: float = prev_x
+
+	if force_shop_platform:
+		# SPECIAL LOGIC: shop platform must be off to the side,
+		# not stacked directly above the last one.
+		var dir: float = _choose_horizontal_dir()
+		var found: bool = false
+
+		for attempt in range(20):
+			var magnitude: float = randf_range(shop_min_horizontal_offset, shop_max_horizontal_offset)
+			var candidate_x: float = clamp(prev_x + magnitude * dir, min_x, max_x)
+
+			var ok: bool = true
+			for p in recent_platforms:
+				var plat := p as Node2D
+				if abs(candidate_x - plat.global_position.x) < shop_min_horizontal_offset * 0.75:
+					ok = false
+					break
+
+			if ok:
+				new_x = candidate_x
+				last_horizontal_dir = dir
+				found = true
+				break
+
+			# flip side and try again
+			dir = -dir
+
+		if not found:
+			# fallback: at least move it a bit to one side
+			var fallback_dir: float = _choose_horizontal_dir()
+			new_x = prev_x + fallback_dir * shop_min_horizontal_offset
+			new_x = clamp(new_x, min_x, max_x)
+			last_horizontal_dir = fallback_dir
+	else:
+		# === NORMAL PLATFORM HORIZONTAL LOGIC (your old code) ===
+		var found_valid: bool = false
+		var dir2: float = _choose_horizontal_dir()
+
+		for attempt2 in range(20):
+			var magnitude2: float = randf_range(min_horizontal_step, max_horizontal_step)
+			var offset2: float = magnitude2 * dir2
+			var candidate_x2: float = prev_x + offset2
+
+			candidate_x2 = clamp(candidate_x2, min_x, max_x)
+
+			var ok2: bool = true
+			for p2 in recent_platforms:
+				var plat2 := p2 as Node2D
+				if abs(candidate_x2 - plat2.global_position.x) < min_horizontal_step:
+					ok2 = false
+					break
+
+			if ok2:
+				new_x = candidate_x2
+				found_valid = true
+				last_horizontal_dir = dir2
+				break
+
+			if randf() < 0.5:
+				dir2 = -dir2
+
+		if not found_valid:
+			var fallback_dir2: float = _choose_horizontal_dir()
+			new_x = prev_x + fallback_dir2 * min_horizontal_step
+			new_x = clamp(new_x, min_x, max_x)
+			last_horizontal_dir = fallback_dir2
+
+	# pick which scene to spawn (difficulty-aware)
+	var scene: PackedScene
+	if force_shop_platform:
+		scene = shop_platform_scene
+	else:
+		scene = _pick_platform_scene(height_from_start)
+
+	if scene == null:
+		push_warning("PlatformSpawner: No platform scenes assigned!")
+		return
+
+	var platform := scene.instantiate() as Node2D
+	platform.global_position = Vector2(new_x, new_y)
+	platforms_parent.add_child(platform)
+
+	var is_bonus: bool = bonus_platform_scene != null and scene == bonus_platform_scene
+
+	# coins: not on shop platforms (unless you want them there)
+	if coin_scene != null:
+		if is_bonus:
+			_spawn_coin_at(Vector2(new_x - 24.0, new_y - 40.0))
+			_spawn_coin_at(Vector2(new_x,         new_y - 52.0))
+			_spawn_coin_at(Vector2(new_x + 24.0,  new_y - 40.0))
+		elif (not force_shop_platform) and randf() < coin_chance:
+			_spawn_coin_at(Vector2(new_x, new_y - 40.0))
+
+	highest_y = new_y
+
+
+func _choose_horizontal_dir() -> float:
+	if last_horizontal_dir == 0.0:
+		if randf() < 0.5:
+			return -1.0
+		else:
+			return 1.0
+
+	if randf() < direction_change_chance:
+		return -last_horizontal_dir
+	else:
+		return last_horizontal_dir
+
+
+func _pick_platform_scene(height_from_start: float) -> PackedScene:
+	# difficulty factor for platform TYPE
+	var difficulty: float = clamp(height_from_start / difficulty_height_scale, 0.0, 1.0)
+
+	# More moving platforms as you go up, but cap at ~50%
+	var target_moving: float = 0.5
+	var dynamic_moving_chance: float = lerp(moving_platform_chance, target_moving, difficulty)
+
+	# Fewer big platforms, but never below ~0.15
+	var min_big: float = 0.15
+	var raw_big: float = lerp(big_platform_chance, min_big, difficulty)
+	var dynamic_big_chance: float = clamp(raw_big, min_big, 1.0)
+
+	# Slightly fewer bonus platforms as you go up
+	var min_bonus: float = 0.05
+	var dynamic_bonus_chance: float = lerp(bonus_platform_chance, min_bonus, difficulty)
+
+	# BONUS
+	if bonus_platform_scene != null and randf() < dynamic_bonus_chance:
+		return bonus_platform_scene
+
+	# MOVING
+	if moving_platform_scene != null and randf() < dynamic_moving_chance:
+		return moving_platform_scene
+
+	# BIG / SMALL
+	if small_platform_scene == null and big_platform_scene == null:
+		return null
+	if small_platform_scene != null and big_platform_scene == null:
+		return small_platform_scene
+	if small_platform_scene == null and big_platform_scene != null:
+		return big_platform_scene
+
+	# mix big vs small using dynamic chance
+	if randf() < dynamic_big_chance:
+		return big_platform_scene
+	else:
+		return small_platform_scene
+
+
+func _spawn_coin_at(pos: Vector2) -> void:
+	var coin := coin_scene.instantiate() as Area2D
+	coin.global_position = pos
+	coins_parent.add_child(coin)
+
+	var main := get_tree().current_scene
+	if main != null and main.has_method("register_coin"):
+		main.register_coin(coin)
+
+
+func _get_top_platform() -> Node2D:
+	var first := platforms_parent.get_child(0) as Node2D
+	var best: Node2D = first
+	var best_y: float = first.global_position.y
+
+	for c in platforms_parent.get_children():
+		var plat := c as Node2D
+		if plat.global_position.y < best_y:
+			best = plat
+			best_y = plat.global_position.y
+
+	return best
+
+
+func _get_recent_top_platforms(count: int) -> Array:
+	var result: Array = []
+	var candidates: Array = []
+
+	for c in platforms_parent.get_children():
+		candidates.append(c)
+
+	while candidates.size() > 0 and result.size() < count:
+		var best_index: int = 0
+		var best_y: float = (candidates[0] as Node2D).global_position.y
+
+		for i in range(1, candidates.size()):
+			var y: float = (candidates[i] as Node2D).global_position.y
+			if y < best_y:
+				best_y = y
+				best_index = i
+
+		result.append(candidates[best_index])
+		candidates.remove_at(best_index)
+
+	return result
